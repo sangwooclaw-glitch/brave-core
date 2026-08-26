@@ -10,12 +10,15 @@
 
 #include "base/check.h"
 #include "base/check_op.h"
+#include "base/feature_list.h"
 #include "base/functional/bind.h"
 #include "base/logging.h"
 #include "brave/components/playlist/content/browser/playlist_constants.h"
 #include "brave/components/playlist/content/browser/playlist_media_handler.h"
+#include "brave/components/playlist/content/browser/playlist_network_media_detector.h"
 #include "brave/components/playlist/content/browser/playlist_service.h"
 #include "brave/components/playlist/content/browser/playlist_tab_helper_observer.h"
+#include "brave/components/playlist/core/common/features.h"
 #include "brave/components/playlist/core/common/pref_names.h"
 #include "components/grit/brave_components_strings.h"
 #include "components/user_prefs/user_prefs.h"
@@ -36,6 +39,15 @@ void PlaylistTabHelper::CreateForWebContents(content::WebContents* web_contents,
   PlaylistMediaHandler::CreateForWebContents(
       web_contents, base::BindRepeating(&PlaylistService::OnMediaDetected,
                                         service->GetWeakPtr()));
+
+  if (base::FeatureList::IsEnabled(features::kPlaylistServiceV2)) {
+    // Detects media from the network stack instead of the DOM. Runs alongside
+    // the script based path; items found by both are deduped downstream in
+    // `OnMediaFilesUpdated()`.
+    PlaylistNetworkMediaDetector::CreateForWebContents(
+        web_contents, base::BindRepeating(&PlaylistService::OnMediaDetected,
+                                          service->GetWeakPtr()));
+  }
 }
 
 PlaylistTabHelper::PlaylistTabHelper(content::WebContents* contents,

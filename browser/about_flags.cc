@@ -350,6 +350,13 @@ const char* const kBraveSyncImplLink[1] = {"https://github.com/brave/go-sync"};
           "Use fake UA for playlist",                              \
           kOsMac | kOsWin | kOsLinux | kOsAndroid,                 \
           FEATURE_VALUE_TYPE(playlist::features::kPlaylistFakeUA), \
+      },                                                           \
+      {                                                            \
+          "playlist-service-v2",                                   \
+          "Playlist Service V2",                                   \
+          "Enables the network-observation based media detection", \
+          kOsMac | kOsWin | kOsLinux | kOsAndroid,                 \
+          FEATURE_VALUE_TYPE(playlist::features::kPlaylistServiceV2), \
       })
 #else
 #define PLAYLIST_FEATURE_ENTRIES

@@ -25,10 +25,8 @@ void PlaylistBackgroundWebContentsHelper::CreateForWebContents(
     PlaylistService* service,
     PlaylistMediaHandler::OnceCallback on_media_detected_callback) {
   content::WebContentsUserData<
-      PlaylistBackgroundWebContentsHelper>::CreateForWebContents(web_contents,
-                                                                 service);
-  PlaylistMediaHandler::CreateForWebContents(
-      web_contents, std::move(on_media_detected_callback));
+      PlaylistBackgroundWebContentsHelper>::CreateForWebContents(
+      web_contents, service, std::move(on_media_detected_callback));
 }
 
 PlaylistBackgroundWebContentsHelper::~PlaylistBackgroundWebContentsHelper() =
@@ -36,11 +34,13 @@ PlaylistBackgroundWebContentsHelper::~PlaylistBackgroundWebContentsHelper() =
 
 PlaylistBackgroundWebContentsHelper::PlaylistBackgroundWebContentsHelper(
     content::WebContents* web_contents,
-    PlaylistService* service)
+    PlaylistService* service,
+    PlaylistMediaHandler::OnceCallback on_media_detected_callback)
     : content::WebContentsUserData<PlaylistBackgroundWebContentsHelper>(
           *web_contents),
       content::WebContentsObserver(web_contents),
-      service_(service) {
+      service_(service),
+      on_media_detected_callback_(std::move(on_media_detected_callback)) {
   CHECK(service_);
 }
 
