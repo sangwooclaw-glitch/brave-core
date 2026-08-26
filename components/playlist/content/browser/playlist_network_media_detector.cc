@@ -13,6 +13,7 @@
 #include "base/json/values_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/token.h"
+#include "brave/components/playlist/content/browser/playlist_constants.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/web_contents.h"
 
@@ -56,6 +57,12 @@ void PlaylistNetworkMediaDetector::OnMediaResponseObserved(
       content::RenderFrameHost::FromFrameToken(frame_token);
   if (!render_frame_host || content::WebContents::FromRenderFrameHost(
                                 render_frame_host) != web_contents()) {
+    return;
+  }
+
+  // V2 deliberately leaves YouTube to the legacy detector and its
+  // MediaSource-suppressed background resolution path.
+  if (IsYoutubeLegacyPlaylistSite(web_contents()->GetLastCommittedURL())) {
     return;
   }
 

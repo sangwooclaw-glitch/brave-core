@@ -19,6 +19,7 @@
 #include "base/files/file.h"
 #include "base/files/file_path.h"
 #include "base/files/memory_mapped_file.h"
+#include "base/feature_list.h"
 #include "base/functional/bind.h"
 #include "base/location.h"
 #include "base/memory/ref_counted_memory.h"
@@ -29,6 +30,7 @@
 #include "base/task/thread_pool.h"
 #include "brave/components/playlist/content/browser/mime_util.h"
 #include "brave/components/playlist/content/browser/playlist_service.h"
+#include "brave/components/playlist/core/common/features.h"
 #include "components/favicon_base/favicon_url_parser.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/url_data_source.h"
@@ -181,7 +183,8 @@ PlaylistDataSource::DataRequest::DataRequest(const GURL& url) {
 
   // Locally saved HLS streams: <id>/hls/<file>, where <file> may itself
   // contain slashes because it comes verbatim from the local manifest.
-  if (type_string == "hls") {
+  if (type_string == "hls" &&
+      base::FeatureList::IsEnabled(features::kPlaylistServiceV2)) {
     if (paths.size() < 3) {
       LOG(ERROR) << "HLS request is missing a file name: " << url.spec();
       return;

@@ -41,9 +41,8 @@ void PlaylistTabHelper::CreateForWebContents(content::WebContents* web_contents,
                                         service->GetWeakPtr()));
 
   if (base::FeatureList::IsEnabled(features::kPlaylistServiceV2)) {
-    // Detects media from the network stack instead of the DOM. Runs alongside
-    // the script based path; items found by both are deduped downstream in
-    // `OnMediaFilesUpdated()`.
+    // YouTube remains on the legacy detector while it uses SABR. All other
+    // sites are handled by this network-based detector.
     PlaylistNetworkMediaDetector::CreateForWebContents(
         web_contents, base::BindRepeating(&PlaylistService::OnMediaDetected,
                                           service->GetWeakPtr()));
@@ -152,8 +151,15 @@ void PlaylistTabHelper::ReadyToCommitNavigation(
   navigation_handle->GetRenderFrameHost()
       ->GetRemoteAssociatedInterfaces()
       ->GetInterface(&frame_observer_config);
-  frame_observer_config->AddMediaDetector(
-      service_->GetMediaDetectorScript(url));
+  if (!base::FeatureList::IsEnabled(features::kPlaylistServiceV2) ||
+      IsYoutubeLegacyPlaylistSite(url)) {
+    frame_observer_config->AddMediaDetector(
+        service_->GetMediaDetectorScript(url));
+  } else {
+    // RenderFrameObservers survive same-site navigations. Clear any scripts
+    // configured by a preceding YouTube page before this V2 page commits.
+    frame_observer_config->ClearMediaScripts();
+  }
 }
 
 void PlaylistTabHelper::DidFinishNavigation(

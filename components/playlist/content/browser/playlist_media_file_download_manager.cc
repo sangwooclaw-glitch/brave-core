@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "base/check.h"
+#include "base/feature_list.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
 #include "base/functional/bind.h"
@@ -15,6 +16,8 @@
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "brave/components/playlist/content/browser/media_stream_classifier.h"
+#include "brave/components/playlist/content/browser/playlist_constants.h"
+#include "brave/components/playlist/core/common/features.h"
 
 namespace playlist {
 
@@ -96,7 +99,9 @@ void PlaylistMediaFileDownloadManager::TryStartingDownloadTask() {
 
   VLOG(2) << __func__ << ": " << current_job_->item->name;
 
-  if (IsStreamManifestUrl(current_job_->item->media_source)) {
+  if (base::FeatureList::IsEnabled(features::kPlaylistServiceV2) &&
+      !IsYoutubeLegacyPlaylistSite(current_job_->item->page_source) &&
+      IsStreamManifestUrl(current_job_->item->media_source)) {
     StartHlsDownloadTask();
     return;
   }

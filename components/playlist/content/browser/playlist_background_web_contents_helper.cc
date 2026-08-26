@@ -8,8 +8,13 @@
 #include <utility>
 
 #include "base/check.h"
+#include "base/feature_list.h"
+#include "base/functional/bind.h"
 #include "base/logging.h"
+#include "brave/components/playlist/content/browser/playlist_constants.h"
+#include "brave/components/playlist/content/browser/playlist_network_media_detector.h"
 #include "brave/components/playlist/content/browser/playlist_service.h"
+#include "brave/components/playlist/core/common/features.h"
 #include "brave/components/playlist/core/common/mojom/playlist.mojom.h"
 #include "content/public/browser/navigation_handle.h"
 #include "content/public/browser/render_frame_host.h"
@@ -27,6 +32,22 @@ void PlaylistBackgroundWebContentsHelper::CreateForWebContents(
   content::WebContentsUserData<
       PlaylistBackgroundWebContentsHelper>::CreateForWebContents(
       web_contents, service, std::move(on_media_detected_callback));
+
+  auto* helper = PlaylistBackgroundWebContentsHelper::FromWebContents(
+      web_contents);
+  CHECK(helper);
+  PlaylistMediaHandler::CreateForWebContents(
+      web_contents,
+      base::BindOnce(&PlaylistBackgroundWebContentsHelper::OnMediaDetected,
+                     helper->weak_factory_.GetWeakPtr()));
+
+  if (base::FeatureList::IsEnabled(features::kPlaylistServiceV2)) {
+    PlaylistNetworkMediaDetector::CreateForWebContents(
+        web_contents,
+        base::BindRepeating(
+            &PlaylistBackgroundWebContentsHelper::OnMediaDetected,
+            helper->weak_factory_.GetWeakPtr()));
+  }
 }
 
 PlaylistBackgroundWebContentsHelper::~PlaylistBackgroundWebContentsHelper() =
@@ -42,6 +63,17 @@ PlaylistBackgroundWebContentsHelper::PlaylistBackgroundWebContentsHelper(
       service_(service),
       on_media_detected_callback_(std::move(on_media_detected_callback)) {
   CHECK(service_);
+  CHECK(on_media_detected_callback_);
+}
+
+void PlaylistBackgroundWebContentsHelper::OnMediaDetected(
+    GURL url,
+    std::vector<mojom::PlaylistItemPtr> items) {
+  if (!on_media_detected_callback_ || items.empty()) {
+    return;
+  }
+
+  std::move(on_media_detected_callback_).Run(std::move(url), std::move(items));
 }
 
 void PlaylistBackgroundWebContentsHelper::ReadyToCommitNavigation(
@@ -63,6 +95,13 @@ void PlaylistBackgroundWebContentsHelper::ReadyToCommitNavigation(
   navigation_handle->GetRenderFrameHost()
       ->GetRemoteAssociatedInterfaces()
       ->GetInterface(&frame_observer_config);
+
+  if (base::FeatureList::IsEnabled(features::kPlaylistServiceV2) &&
+      !IsYoutubeLegacyPlaylistSite(url)) {
+    frame_observer_config->ClearMediaScripts();
+    return;
+  }
+
   frame_observer_config->AddMediaSourceAPISuppressor(
       service_->GetMediaSourceAPISuppressorScript());
   frame_observer_config->AddMediaDetector(

@@ -26,7 +26,7 @@ class PlaylistService;
 
 // `PlaylistBackgroundWebContentsHelper` is attached to a background
 // `WebContents` (see `PlaylistBackgroundWebContentses`). It's responsible for
-// setting up the `PlaylistMediaHandler` for the background `WebContents`, and
+// joining legacy and V2 detector results for the background `WebContents`, and
 // initializing renderer-side state (i.e. the scripts that
 // `PlaylistRenderFrameObserver` injects into the page) via
 // `WebContentsObserver::ReadyToCommitNavigation()`.
